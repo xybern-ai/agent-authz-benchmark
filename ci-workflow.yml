@@ -1,0 +1,32 @@
+# Xybern XAAB CI workflow.
+# To enable: move this file to .github/workflows/ci.yml on a clone whose
+# git credential has the "workflow" scope (e.g. `gh auth refresh -s workflow`),
+# then commit. GitHub Actions also needs to be enabled/billed for the org.
+
+name: XAAB CI
+
+# Validates the dataset and runs the OFFLINE targets (pattern guardrail +
+# baselines) on every push and PR, so the published numbers and the harness stay
+# continuously verified. The live Xybern Authorisation Layer run is NOT in CI: it
+# needs a workspace API key and costs LLM credits, so those numbers are published
+# as frozen results (see results/) and refreshed on release.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: pip install -r requirements.txt pytest
+      - name: Validate dataset
+        run: python -m xaab.cli validate
+      - name: Tests (offline targets + invariants)
+        run: pytest -q
