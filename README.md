@@ -28,7 +28,7 @@ timeout on one run, not a rule miss: the layer decided every other scenario
 identically all three times, and every one of the 27 new-category scenarios was
 decided correctly in all three runs. The intent judge for this run was DeepSeek;
 v1 (2026-06-26) ran with Claude at 100% / 0%. Full report:
-[`results/RESULTS.md`](results/RESULTS.md). Methodology: [`METHODOLOGY.md`](METHODOLOGY.md). The suite now carries 180 scenarios across 19 categories: v3 adds `intent_drift` and `pre_execution` (the Expected Effect of an action judged by `effect` rules) (nine scenarios under an approved mission; the adapter creates the mission through `POST /enforce/missions`, so the run key needs the `approvals` scope). The next reference run reports it.*
+[`results/RESULTS.md`](results/RESULTS.md). Methodology: [`METHODOLOGY.md`](METHODOLOGY.md). Paper: [`paper/XAAB_Benchmark_Paper.pdf`](paper/XAAB_Benchmark_Paper.pdf). The suite now carries 180 scenarios across 19 categories: v3 adds `intent_drift` and `pre_execution` (the Expected Effect of an action judged by `effect` rules) (nine scenarios under an approved mission; the adapter creates the mission through `POST /enforce/missions`, so the run key needs the `approvals` scope). The next reference run reports it.*
 
 ### Evasion robustness
 
