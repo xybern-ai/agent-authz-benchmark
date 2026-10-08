@@ -40,14 +40,23 @@ class XybernAdapter(TargetAdapter):
 
     def _intercept(self, action_type: str, action_content: Optional[str],
                    metadata: Dict[str, Any], agent_id: str) -> Dict[str, Any]:
+        # v2: a scenario may carry intercept-level inputs (a warrant token, a
+        # commitment id, a grant id, a session id, a stamp) under metadata._intercept;
+        # they travel as request fields, not as metadata, exactly as a real client sends them.
+        md = dict(metadata or {})
+        extra = md.pop("_intercept", None) or {}
+        body: Dict[str, Any] = {
+            "action_type": action_type,
+            "action_content": action_content,
+            "metadata": md,
+            "agent_id": agent_id,
+        }
+        for k in ("warrant", "commitment", "grant_id", "session_id", "contract_id", "stamp"):
+            if k in extra:
+                body[k] = extra[k]
         r = self._session.post(
             f"{self.base_url}/enforce/intercept",
-            json={
-                "action_type": action_type,
-                "action_content": action_content,
-                "metadata": metadata or {},
-                "agent_id": agent_id,
-            },
+            json=body,
             timeout=self.timeout,
         )
         r.raise_for_status()
@@ -57,13 +66,26 @@ class XybernAdapter(TargetAdapter):
         # Each attempt gets a fresh agent id so prior_actions replay cleanly and
         # only affect this case (no cross-contamination on retry).
         agent_id = f"{self.agent_prefix}_{scenario.id}_{uuid.uuid4().hex[:6]}"
+        # v3 (intent_drift): a scenario may declare the mission its agent runs under
+        # (metadata._intercept.mission); it is created and approved for this fresh
+        # agent, and every replayed and final action carries its contract_id.
+        bind: Dict[str, Any] = {}
+        spec = (scenario.metadata or {}).get("_intercept", {}).get("mission") if isinstance(scenario.metadata, dict) else None
+        if isinstance(spec, dict):
+            r = self._session.post(f"{self.base_url}/enforce/missions",
+                                   json={"agent_id": agent_id, "mission": spec, "mode": "enforce", "approve": True},
+                                   timeout=self.timeout)
+            r.raise_for_status()
+            bind = {"contract_id": r.json().get("contract_id")}
         # Replay any prior actions to establish sequence/velocity state.
         for prior in scenario.prior_actions:
             self._intercept(prior.action_type, prior.action_content,
-                            prior.metadata, agent_id)
+                            {**(prior.metadata or {}), **({"_intercept": bind} if bind else {})}, agent_id)
         t0 = time.perf_counter()
-        resp = self._intercept(scenario.action_type, scenario.action_content,
-                               scenario.metadata, agent_id)
+        md = dict(scenario.metadata or {})
+        if bind:
+            md["_intercept"] = {**{k: v for k, v in (md.get("_intercept") or {}).items() if k != "mission"}, **bind}
+        resp = self._intercept(scenario.action_type, scenario.action_content, md, agent_id)
         latency_ms = (time.perf_counter() - t0) * 1000.0
         decision = (resp.get("decision") or "").lower()
         label = "restrict" if decision in _RESTRICTING_DECISIONS else "allow"

@@ -60,6 +60,11 @@ hard-adversarial + 10 hard-benign), each derived from public threat references
 | velocity_abuse | OWASP LLM08 | runaway loop / scraping burst |
 | financial_risk | APP / BEC fraud | wire funds to a crypto wallet |
 | social_engineering | BEC | CEO-impersonation payment |
+| agent_to_agent (v2) | confused deputy, injected delegation | a delegate exceeding its principal |
+| information_flow (v2) | OWASP LLM06; data residency | confidential data to an external destination |
+| authority_attacks (v2) | warrant tampering, forged stamps | a forged authorisation warrant |
+| intent_drift (v3) | IntentLock, trajectory drift | research, quote, negotiate, then export the customer table under a renewal mission |
+| pre_execution (v3) | expected effect: irreversible, spend, sensitive data out, privilege | clear the customers table before the migration |
 
 Every category includes **legitimate** counterparts that share surface features
 with the attacks (e.g. a benign `send_email`, a redacted summary, a routine
@@ -152,8 +157,8 @@ python verify.py results/proof/bundle.json
 
 This is the part a copycat cannot fake: not a results table you take on faith, but
 a cryptographically verifiable record that these decisions actually happened. The
-published bundle covers **485 sealed decisions across the 3 stability runs** and
-verifies clean.
+published bundle covers **588 sealed decisions across the 3 stability runs of the
+v2 pack (2026-09-19, including prior-action replays)** and verifies clean.
 
 ## Targets scored
 

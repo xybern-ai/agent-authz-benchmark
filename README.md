@@ -10,18 +10,25 @@ balanced, labelled suite of unsafe **and** legitimate actions and reports the
 honest trade-off, catch rate *and* false-positive rate, for any layer, on the
 same scenarios.
 
-## Results (v1)
+## Results (v2, 2026-09-19)
 
 | Target | Catch rate | False positives | F1 | Youden's J | Latency p50 / p95 |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| **Xybern Authorisation Layer** | **100.0%** | **0.0%** | **100.0%** | **100.0%** | 6787 ms / 10622 ms |
-| Pattern guardrail (regex/keyword) | 49.5% | 13.3% | 64.6% | 36.2% | < 1 ms |
+| **Xybern Authorisation Layer** | **99.7%** (mean of 3 runs, min 99.2%, max 100%) | **0.0%** | **99.9%** | **99.7%** | 5133 ms / 11125 ms |
+| Pattern guardrail (regex/keyword) | 42.4% | 10.3% | 58.2% | 32.1% | < 1 ms |
 | Baseline: allow-all | 0.0% | 0.0% | n/a | 0.0% | 0 ms |
-| Baseline: block-all | 100.0% | 100.0% | 78.1% | 0.0% | 0 ms |
+| Baseline: block-all | 100.0% | 100.0% | 76.2% | 0.0% | 0 ms |
 
-*137 scenarios (107 unsafe / 30 legitimate) across 14 categories, 54 base + 62
-evasion variants + 11 hard-adversarial + 10 hard-benign. Full report:
-[`results/RESULTS.md`](results/RESULTS.md). Methodology: [`METHODOLOGY.md`](METHODOLOGY.md).*
+*The v2 results above cover 164 scenarios (125 unsafe / 39 legitimate) across 17 categories: the 137 v1
+scenarios plus `agent_to_agent`, `information_flow` and `authority_attacks`
+(forged warrants, confused deputy, fabricated grants, forged and missing stamps,
+substitution after authorisation, dual-control bypass, shared-limit bursts).
+The one scenario that varied between runs (`inject-002`) was a client-side read
+timeout on one run, not a rule miss: the layer decided every other scenario
+identically all three times, and every one of the 27 new-category scenarios was
+decided correctly in all three runs. The intent judge for this run was DeepSeek;
+v1 (2026-06-26) ran with Claude at 100% / 0%. Full report:
+[`results/RESULTS.md`](results/RESULTS.md). Methodology: [`METHODOLOGY.md`](METHODOLOGY.md). The suite now carries 180 scenarios across 19 categories: v3 adds `intent_drift` and `pre_execution` (the Expected Effect of an action judged by `effect` rules) (nine scenarios under an approved mission; the adapter creates the mission through `POST /enforce/missions`, so the run key needs the `approvals` scope). The next reference run reports it.*
 
 ### Evasion robustness
 
@@ -49,8 +56,9 @@ the metric: blocking everything also gets a 100% catch rate, which is why
 ### Stable run-to-run, and cryptographically verifiable
 
 Because the layer uses an LLM intent judge, we run it **3 times** and report
-variance: **100% catch / 0% false positives with std 0.0**, every one of the 137
-scenarios decided identically all three runs (`--runs N` to reproduce).
+variance: **99.7% mean catch / 0% false positives, std 0.38**, 163 of 164 scenarios
+decided identically all three runs and the one that varied was a client timeout
+(`--runs N` to reproduce).
 
 And the run is not just a table you take on faith. Every decision is sealed to a
 hash-chained, ECDSA P-256 **signed Provenance Vault**, and we publish the signed
@@ -59,7 +67,7 @@ proof bundle. Verify it yourself, offline, trusting nothing from us:
 ```bash
 pip install cryptography
 python verify.py results/proof/bundle.json
-# -> VERIFIED: authentic, untampered, correctly chained (485 sealed decisions)
+# -> VERIFIED: authentic, untampered, correctly chained (588 sealed decisions)
 ```
 
 ## Layout
